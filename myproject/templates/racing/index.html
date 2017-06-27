@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
+	<head>
+		<title>Red de Aparcamientos Madrid</title>
+		<meta name="description" content="A nice free template from ZAGGstore, Carbon Racing" />
+		<link rel="stylesheet" href="/static/racing/styles.css" type="text/css" />
+		<link rel="shortcut icon" href="/static/racing/images/favicon.png" type="image/icon" />
+	</head>
+	<body>
+		<div id="wrapper">
+			<div id="header">
+				<img src="/static/racing/images/banner.jpg"/>
+			</div>
+			<div id="menu">
+				<ul>
+					{% block inicio %}
+					<li><a href="http://localhost:1234/">Inicio</a></li>
+					{% endblock %}
+					{% block aparcamientos %}
+					<li><a href="http://localhost:1234/aparcamientos/">Todos</a></li>
+					{% endblock %}
+					{% block ayuda %}
+					<li><a href="http://localhost:1234/about/">Ayuda</a></li>
+					{% endblock %}
+				</ul>
+			</div>
+
+			<div id="content">
+				<style>
+					a{color: #00FFFF;}
+					a:hover{color: #FF0000;}
+				</style>
+				<div class="ic"></div>
+				<div id="content-left">
+					<div id="acces">
+						{% block acces %}
+							{{accesible|safe}}
+						{% endblock %}
+					</div>
+					<div id="listausuarios">
+						{% block users%}
+							{{list_users|safe}}
+						{% endblock %}
+					</div>
+				</div>
+				<div id="content-center">
+					<div class= "list" />
+						{% block listado %}
+			        	{{list|safe}}
+						{% endblock %}
+					</div>
+				</div>
+				<div id="content-right">
+					{% block user %}
+					<h1>Identifícate</h1>
+					<div class="userbox">
+			        <div class="userform">
+							    {{login|safe}}
+			        </div>
+					{% endblock %}
+			    </div>
+				</div>
+			</div>
+			<div id="footer">
+				<p>Esta aplicación utiliza datos del portal de datos abiertos de la ciudad de Madrid. © Copyright</p>
+				<p>Pagina con los datos del Ayuntamiento de Madrid: <a href="http://datos.madrid.es/portal/site/egob/menuitem.c05c1f754a33a9fbe4b2e4b284f1a5a0/?vgnextoid=e84276ac109d3410VgnVCM2000000c205a0aRCRD&vgnextchannel=374512b9ace9f310VgnVCM100000171f5a0aRCRD&vgnextfmt=default" target="_blank"> Datos munimadrid</a>.</p>
+				<p>Descripcion del <a href="http://datos.munimadrid.es/portal/site/egob/menuitem.ac61933d6ee3c31cae77ae7784f1a5a0/?vgnextoid=00149033f2201410VgnVCM100000171f5a0aRCRD&format=xml&file=0&filename=202584-0-aparcamientos-residentes&mgmtid=e84276ac109d3410VgnVCM2000000c205a0aRCRD&preview=full">fichero XML</a></p>
+			</div>
+		</div>
+	</body>
+</html>
