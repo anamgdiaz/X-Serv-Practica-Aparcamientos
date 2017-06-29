@@ -1,8 +1,5 @@
 
 body {
 	font-size: {{letra| safe}};
-}
-
-#content {
 	color: {{color| safe}};
 }

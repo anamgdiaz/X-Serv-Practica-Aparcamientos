@@ -21,6 +21,7 @@ class Aparcamiento(models.Model):
 	coordenada_x = models.CharField(max_length=32)
 	coordenada_y = models.CharField(max_length=32)
 	contador_coments = models.IntegerField(default=0)
+	contador_megusta = models.IntegerField(default=0)
 
 	telefono = models.CharField(max_length=50)
 	email = models.CharField(max_length=50)

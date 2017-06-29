@@ -19,7 +19,7 @@ from django.views.static import *
 from myproject import settings
 
 urlpatterns = [
-    url(r'^main.css/', 'aparcamientos.views.personalizar'),
+    url(r'^change.css/', 'aparcamientos.views.personalizar'),
     url(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_URL}),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^$', 'aparcamientos.views.pagina_principal'),

@@ -1,6 +1,6 @@
 /* Carbon Racing styles */
 
-html, body {
+body {
 	background: url('images/carbon-bg.jpg') #000;
 	background-repeat: repeat-x;
 	color: #FFFFFF;
@@ -54,6 +54,10 @@ img {
 	width: auto;
 	float: center;
 	margin-bottom: 1px;
+}
+
+.boxinner{
+	color: auto;
 }
 
 #wrap {

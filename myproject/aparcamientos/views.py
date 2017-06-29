@@ -18,6 +18,8 @@ import xml.dom.minidom as dom
 import datetime
 import sys
 from .parser import get_data
+from django.http import QueryDict
+import urllib
 
 
 # Create your views here.
@@ -25,8 +27,8 @@ from .parser import get_data
 def login_form(request):
 
     formulario = '<form action="login" method="POST">'
-    formulario += 'Username<br><input type="text" name="Usuario"><br>'
-    formulario += 'Password<br><input type="password" name="Password"><br>'
+    formulario += 'Nombre<br><input type="text" name="Usuario"><br>'
+    formulario += 'Contraseña<br><input type="password" name="Password"><br>'
     formulario += '<br><input type="submit" value="Entrar"></form>'
     return formulario
 
@@ -41,56 +43,35 @@ def loginuser(request):
 		direcc = '/' + str(user)
 		return redirect(direcc)
 	else:
-		Error = "Por favor, introduzca un usuario o contraseña válidos"
-		template = get_template("error.html")
+		Error = "Por favor, introduzca un usuario y contraseña válidos"
+		template = get_template("fail.html")
 		c = Context ({'Error': Error})
 		renderizado = template.render(c)
 		return HttpResponse(renderizado)
 
-def pie_pagina():
-
-	url = 'http://datos.munimadrid.es/portal/site/egob/menuitem.ac61933d6ee3c31cae77ae7784f1a5a0/?'
-	url += 'vgnextoid=00149033f2201410VgnVCM100000171f5a0aRCRD&format=xml&file=0&filename=202584-0-aparcamientos-'
-	url += 'residentes&mgmtid=e84276ac109d3410VgnVCM2000000c205a0aRCRD&preview=full'
-
-	url2 = 'http://datos.madrid.es/portal/site/egob/menuitem.c05c1f754a33a9fbe4b2e4b284f1a5a0/?'
-	url2 += 'vgnextoid=e84276ac109d3410VgnVCM2000000c205a0aRCRD&vgnextchannel='
-	url2 += '374512b9ace9f310VgnVCM100000171f5a0aRCRD&vgnextfmt=default'
-
-	#Así no queda feo en la plantilla
-	url_pag = 'http://datos.madrid.es/portal/site/egob/menuitem.ac61933d6ee3c31cae77ae7784f1a5a0/?'
-	url_pag += 'vgnextoid=00149033f2201410VgnVCM100000171f5a0aRCRD&format=xml&file=0&filename=202584-0-aparcamientos/'
-
-	foot = '<html><body><p>Esta aplicación utiliza datos del portal de datos abiertos de la ciudad de Madrid. © Copyright'\
-				+ '</p></body></html>'
-	foot += '<a href=' + url2 + '>' + url_pag + '</a><br></br>'
-	foot += '<a href=' + url + '>Descripción de los datos en formato XML</a>'
-
-	return foot
-
-
 def lista_comentarios():
 
-	lista_todos = Aparcamiento.objects.all()
-	lista_ordenada = lista_todos.order_by("-contador_coments")[:5]
-	Response = "LISTADO DE APARCAMIENTOS MÁS COMENTADOS<br><br>"
-	Existe = False
-	for i in lista_ordenada:
-		comentarios = Comentario.objects.filter(aparcamiento=i)
-		if len(comentarios) != 0:
-			Response += "<li><a href=" + i.content_url + ">" + i.nombre + "<br></a>"
-			Response += "Dirección: " + i.clase_vial + " " + i.localizacion + ", nº " + str(i.num)
-			Response += "<br><a href=http://localhost:1234/aparcamientos/" + i.entidad + ">" + "Más información<br></a>"
-			Existe = True
-	if Existe == False:
-		Response += "Aún no se han registrado comentarios para ningún aparcamiento"
+    lista_todos = Aparcamiento.objects.all()
+    lista_ordenada = lista_todos.order_by("-contador_megusta")[:5]
+    Response = "LISTADO DE APARCAMIENTOS CON MÁS ME GUSTA<br><br>"
+    Existe = False
+    for i in lista_ordenada:
+        megustas = i.contador_megusta
+        #comentarios = Comentario.objects.filter(aparcamiento=i)
+        if megustas != 0:
+            Response += "<li><a href=" + i.content_url + ">" + i.nombre + "<br></a>"
+            Response += "Dirección: " + i.clase_vial + " " + i.localizacion + ", nº " + str(i.num)
+            Response += "<br><a href=http://localhost:1234/aparcamientos/" + i.entidad + ">" + "Más información<br></a><br>"
+            Existe = True
+    if Existe == False:
+        Response += "Aún no se han registrado comentarios para ningún aparcamiento"
 
-	Response += "<br><br>"
-	return Response
+    Response += "</br></br>"
+    return Response
 
 def paginas_personales():
 
-	Lista = "PÁGINAS PERSONALES DE USUARIO<br><br>"
+	Lista = "PÁGINAS DE USUARIOS<br><br>"
 	usuarios = User.objects.all()
 	for i in usuarios:
 		try:
@@ -101,7 +82,6 @@ def paginas_personales():
 
 	return Lista
 
-
 def lista_aparcamientos():
 
 	lista = ''
@@ -109,7 +89,7 @@ def lista_aparcamientos():
 	for aparcamiento in aparcamientos:
 		nombre_aparcamiento = aparcamiento.nombre
 		url_aparcamiento = aparcamiento.entidad
-		lista += '<li><p>' + nombre_aparcamiento + '<a href="' + url_aparcamiento + '">	⇾ Más información</a></p></li>'
+		lista += '<li><p>' + nombre_aparcamiento + '<a href="' + url_aparcamiento + '">	--> Más información</a></p></li>'
 
 	return lista
 
@@ -146,21 +126,16 @@ def aparcamientos_seleccionados(user,request):
 
 	return lista,seleccionados
 
-
 def accesibles(value):
 	accesibles = '<form action="" method="POST">'
 	accesibles += '<button type="submit" name="Accesible" value="' + str(value) + '"> Accesibles</button></form>'
 
 	return accesibles
 
-
-
-
 @csrf_exempt
 def pagina_principal(request):
 
 	formulario = login_form(request)
-	foot = pie_pagina()
 	list_coments = lista_comentarios()
 	users = paginas_personales()
 
@@ -169,7 +144,7 @@ def pagina_principal(request):
 
 	template = get_template("index.html")
 
-	if request.user.is_authenticated():				#He recibido un login de un usuario
+	if request.user.is_authenticated():
 		username = str(request.user)
 		formulario = 'Bienvenido ' + username
 		formulario += '<br><br><a href="http://localhost:1234/logout" > Logout </a>'
@@ -199,32 +174,27 @@ def pagina_principal(request):
 				value = 1
 
 			accesible = accesibles(value)
-			c = Context({'login': formulario, 'footer': foot, 'list_users':lista, 'accesible': accesible})
+			c = Context({'login': formulario, 'list_users':lista, 'accesible': accesible})
 
 	else:
 
 		init = Aparcamiento.objects.all()
 
 		if len(init) == 0:
-			get_data() #PARSER
+			get_data()
 
 
-		c = Context({'login': formulario, 'footer': foot, 'list':list_coments, 'list_users':users, 'accesible': accesible})
+		c = Context({'login': formulario, 'list':list_coments, 'list_users':users, 'accesible': accesible})
 
 	renderizado = template.render(c)
 	return HttpResponse(renderizado)
-
-
 
 def mylogout(request):
 	logout(request)
 	return redirect("/")
 
-
 @csrf_exempt
 def usuarios(request, peticion):
-
-	foot = pie_pagina()
 
 	formulario = '<form action="" method="POST">'
 	formulario += '<br>Introduzca un título nuevo a su página personal<br><input type="text" name="Titulo">'
@@ -242,7 +212,7 @@ def usuarios(request, peticion):
 	for aparcamiento in aparcamientos:
 		nombre_aparcamiento = aparcamiento.nombre
 		lista += nombre_aparcamiento
-		lista += '  <form action="" method="POST">'
+		lista += '<form action="" method="POST">'
 		lista += '<button type="submit" name="Seleccionar" value="' + nombre_aparcamiento + '">Seleccionar</button><br></form>'
 
 	user_object= User.objects.get(username=peticion)
@@ -252,7 +222,7 @@ def usuarios(request, peticion):
 		if key == "Titulo":
 			titulo = request.POST['Titulo']
 			try:
-				user = Usuario.objects.get(nombre=user_object)	#Si funciona es que ya existe
+				user = Usuario.objects.get(nombre=user_object)
 				user.titulo_pagina = titulo
 				user.save()
 			except ObjectDoesNotExist:
@@ -263,16 +233,16 @@ def usuarios(request, peticion):
 			nombre_aparcamiento = request.POST['Seleccionar']
 			today = datetime.datetime.today()
 
-			#Búsqueda de ForeignKeys
+
 			try:
-				selector = Usuario.objects.get(nombre=user_object)		#Si funciona es que ya existe
+				selector = Usuario.objects.get(nombre=user_object)
 				aparcamiento = Aparcamiento.objects.get(nombre=nombre_aparcamiento)
 			except:
-				p = Usuario(nombre=user_object)			#Si no existe, lo creo
+				p = Usuario(nombre=user_object)
 				p.save()
-				selector = Usuario.objects.get(nombre=user_object)		#Ahora ya sí existe
+				selector = Usuario.objects.get(nombre=user_object)
 
-			#Compruebo si ese aparcamiento ya se ha seleccionado
+
 			Check = False
 			lista_usuario = Seleccionados.objects.filter(selector=selector)
 			for i in lista_usuario:
@@ -280,7 +250,6 @@ def usuarios(request, peticion):
 					Check=True
 
 			if Check == False:
-				#Almaceno el aparcamiento seleccionado en su página personal
 				p = Seleccionados(aparcamiento=aparcamiento, selector=selector, fecha_seleccion=today)
 				p.save()
 
@@ -289,13 +258,13 @@ def usuarios(request, peticion):
 			color = request.POST['Color']
 
 			try:
-				user = Usuario.objects.get(nombre=user_object)		#Si funciona es que ya existe
+				user = Usuario.objects.get(nombre=user_object)
 			except:
-				p = Usuario(nombre=user_object)			#Si no existe, lo creo
+				p = Usuario(nombre=user_object)
 				p.save()
-				user = Usuario.objects.get(nombre=user_object)		#Ahora ya sí existe
+				user = Usuario.objects.get(nombre=user_object)
 			if letra == "":
-				letra = "11"
+				letra = "15"
 
 			user.letra = letra
 			user.color = color
@@ -306,24 +275,24 @@ def usuarios(request, peticion):
 
 	if request.user.is_authenticated():
 		username = str(request.user)
-		if peticion != username:
-			template = get_template("public.html")
+		if peticion != username:  #Si no es igual es que solo puedo acceder a la parte publica, ya qu eno es la mia
+			template = get_template("publicuser.html")
 			titulo_pagina = "Página pública de " + peticion + "<br><br>"
 			form_user = 'Bienvenido ' + username
 			form_user += '<br><br><a href="http://localhost:1234/logout" > Logout </a>'
-			c = Context({'lista_selecc':lista_seleccionados, 'seleccionados':seleccionados, 'titulo': titulo_pagina, 'login':form_user, 'footer':foot})
-		else:	#Estoy en mi página personal
-			template = get_template("user.html")
+			c = Context({'lista_selecc':lista_seleccionados, 'seleccionados':seleccionados, 'titulo': titulo_pagina, 'login':form_user})
+		else:	    #Si es igual es que es la mia y puedo acceder a la parte privada, ya que es lamia
+			template = get_template("privateuser.html")
 			try:
 				titulo_pagina = Usuario.objects.get(nombre=user_object).titulo_pagina
 			except ObjectDoesNotExist:
 				titulo_pagina = "Página personal de " + str(request.user) + "<br><br>"
-			c = Context({'lista_selecc':lista_seleccionados, 'seleccionados':seleccionados, 'lista': lista, 'form': formulario, 'css':css, 'titulo': titulo_pagina, 'footer':foot})
+			c = Context({'lista_selecc':lista_seleccionados, 'seleccionados':seleccionados, 'lista': lista, 'form': formulario, 'css':css, 'titulo': titulo_pagina})
 	else:
-		template = get_template("public.html")
+		template = get_template("publicuser.html")
 		titulo_pagina = "Página pública de " + peticion + "<br><br>"
 		form_user = 'Para loguearse vaya al botón de Inicio'
-		c = Context({'lista_selecc':lista_seleccionados, 'seleccionados':seleccionados, 'titulo': titulo_pagina, 'login':form_user, 'footer':foot})
+		c = Context({'lista_selecc':lista_seleccionados, 'seleccionados':seleccionados, 'titulo': titulo_pagina, 'login':form_user})
 
 
 	renderizado = template.render(c)
@@ -336,15 +305,14 @@ def personalizar(request):
 		letra = user.letra
 		color = user.color
 	else:
-		letra = "11px"
-		color = "#8e7282"
+		letra = "18px"
+		color = "#17C86D"
 
-	css = get_template("main.css")
+	css = get_template("change.css")
 	c = Context({'letra':letra, 'color':color})
 	renderizado = css.render(c)
 
 	return HttpResponse(renderizado, content_type="text/css")
-
 
 def usuarios_xml(request, peticion):
 
@@ -479,16 +447,14 @@ def usuarios_xml(request, peticion):
 	xml = doc.toprettyxml(indent=" ")
 	return HttpResponse(xml, content_type = "text/xml")
 
-
 @csrf_exempt
 def aparcamientos(request):
 
 	lista = lista_aparcamientos()
-	foot = pie_pagina()
 
 	filtrar = '<form action="" method="POST">'
-	filtrar += '<br><br><input type="text" name="distrito"><br>'
-	filtrar += '<br><input type="submit" value="Filtrar por distrito">'
+	filtrar += '<br><br><input type="text" name="distrito">'
+	filtrar += '<input type="submit" value="Filtrar por distrito">'
 
 	template = get_template("aparcamientos.html")
 
@@ -504,11 +470,11 @@ def aparcamientos(request):
 		filtro_distrito = filtro_distrito.upper()
 
 		if filtro_distrito == '':
-			lista_filtrada = "No ha introducido ningún filtro. Por favor introduzca un distrito para filtrar " + lista
+			lista_filtrada = "No ha introducido ningún filtro, introduzca distrito para filtrar " + lista
 		else:
 			aparcamientos_filtrados = Aparcamiento.objects.all()
 			Encontrado = False
-			lista_filtrada = "Los aparcamientos filtrados en " + filtro_distrito + " son: "
+			lista_filtrada = "Los aparcamientos en el " + filtro_distrito + " son: "
 			for i in aparcamientos_filtrados:
 				if filtro_distrito == i.distrito:
 					Encontrado = True
@@ -518,14 +484,14 @@ def aparcamientos(request):
 
 
 			if Encontrado == False:		#No es un distrito válido el que se ha introducido y no ha entrado por el bucle anterior
-				lista_filtrada = "Por favor introduzca un nuevo distrito. " + filtro_distrito + " no es un distrito válido"
+				lista_filtrada = "Introduzca un nuevo distrito. " + filtro_distrito + " no es válido"
 
 
-		c = Context({'distrito': filtrar, 'lista': lista_filtrada, 'footer': foot, 'login':form_user})
+		c = Context({'distrito': filtrar, 'lista': lista_filtrada, 'login':form_user})
 
 	else:
 
-		c = Context({'distrito': filtrar, 'lista': lista, 'footer': foot, 'login':form_user})
+		c = Context({'distrito': filtrar, 'lista': lista, 'login':form_user})
 
 
 	renderizado = template.render(c)
@@ -534,134 +500,143 @@ def aparcamientos(request):
 @csrf_exempt
 def aparcamientos_id(request, recurso):
 
-	foot = pie_pagina()
-	template = get_template("aparcamientos.html")
+    template = get_template("aparcamientos.html")
+    num_megustas = 0
 
-	if request.method == 'POST':
-		coment = request.POST['Comentario']
-		aparcamiento = Aparcamiento.objects.get(entidad=recurso)
-		aparcamiento.contador_coments = aparcamiento.contador_coments + 1
-		aparcamiento.save()
+    if request.method == 'POST':
+        #tipo = request.POST
+        #print(tipo)
+        #qd = urllib.unquote(tipo).decode("utf-8")
+        #qd = QueryDict(tipo).decode("utf-8")
+        #qd.getlist('Me Gusta')
+        #print(qd)
+        #if tipo == 'Comentario':
+            #coment = request.POST['Comentario']
+            #aparcamiento = Aparcamiento.objects.get(entidad=recurso)
+            #aparcamiento.contador_coments = aparcamiento.contador_coments + 1
+            #aparcamiento.save()
 
-		p = Comentario (aparcamiento= aparcamiento, coment=coment)
-		p.save()
+            #p = Comentario (aparcamiento= aparcamiento, coment=coment)
+            #p.save()
+        #else:
+        aparcamiento = Aparcamiento.objects.get(entidad=recurso)
+        aparcamiento.contador_megusta = aparcamiento.contador_megusta + 1
+        aparcamiento.save()
+        num_megustas = aparcamiento.contador_megusta
 
-	try:
-		aparcamiento = Aparcamiento.objects.get(entidad=recurso)
+    try:
+        aparcamiento = Aparcamiento.objects.get(entidad=recurso)
 
-		nombre = aparcamiento.nombre
-		descripcion = aparcamiento.descripcion
-		accesibilidad = aparcamiento.accesibilidad
-		localizacion = aparcamiento.localizacion
-		via = aparcamiento.clase_vial
-		num = aparcamiento.num
-		localidad = aparcamiento.localidad
-		provincia = aparcamiento.provincia
-		codigo_postal = aparcamiento.codigo_postal
-		barrio = aparcamiento.barrio
-		distrito = aparcamiento.distrito
-		coordenada_x = aparcamiento.coordenada_x
-		coordenada_y = aparcamiento.coordenada_y
-		telefono = aparcamiento.telefono
-		email = aparcamiento.email
+        nombre = aparcamiento.nombre
+        descripcion = aparcamiento.descripcion
+        accesibilidad = aparcamiento.accesibilidad
+        localizacion = aparcamiento.localizacion
+        via = aparcamiento.clase_vial
+        num = aparcamiento.num
+        localidad = aparcamiento.localidad
+        provincia = aparcamiento.provincia
+        codigo_postal = aparcamiento.codigo_postal
+        barrio = aparcamiento.barrio
+        distrito = aparcamiento.distrito
+        coordenada_x = aparcamiento.coordenada_x
+        coordenada_y = aparcamiento.coordenada_y
+        telefono = aparcamiento.telefono
+        email = aparcamiento.email
 
-		if telefono == '':
-			telefono = "No disponible"
+        if telefono == '':
+            telefono = "No disponible"
 
-		if email == '':
-			email = "No disponible"
+        if email == '':
+            email = "No disponible"
 
-		if accesibilidad == 1:
-			acces = "Libre"
-		else:
-			acces = "Ocupado"
+        if accesibilidad == 1:
+            acces = "Libre"
+        else:
+            acces = "Ocupado"
 
-		lista_aparcamientos = Aparcamiento.objects.all()
-		list_coments = ""
-		for i in lista_aparcamientos:
-			if i.entidad == recurso:
-				comentarios = Comentario.objects.filter(aparcamiento=i)
-				if len(comentarios) != 0:		#Quiere decir que ese Aparcamiento no tiene comentarios, así que no muestro su lista
-					list_coments = "<p>COMENTARIOS</p>"
-					for j in comentarios:
-						list_coments += j.coment + "<br>"
-				Response = "<p>INFORMACIÓN ACERCA DEL APARCAMIENTO " + recurso + "</br></p>"
-				Response += "<a href=" + i.content_url + ">" + i.nombre + "</a><br>"
-				Response += list_coments + "<br>"
-				Response += "Descripción: " + descripcion + "</br>"
-				Response += "Accesibilidad: " + acces + "</br>"
-				Response	+= "Localización: " + via + " " + localizacion + ", nº " + str(num)
-				Response	+= " " + localidad + " (" + str(codigo_postal) + ")</br>"
-				Response	+= "Ubicación: " + barrio + " " + distrito + " Coordenadas: " + str(coordenada_x) + " , " + str(coordenada_y) + "<br><br>"
-				Response += "INFORMACIÓN DE CONTACTO </br>"
-				Response += "Teléfono: " + telefono + "</br>"
-				Response += "Email: " + email + "</br>"
+        lista_aparcamientos = Aparcamiento.objects.all()
+        list_coments = ""
+        aparcamiento = Aparcamiento.objects.get(entidad=recurso)
+        num_megustas = aparcamiento.contador_megusta
+        for i in lista_aparcamientos:
+            if i.entidad == recurso:
+                comentarios = Comentario.objects.filter(aparcamiento=i)
+                if len(comentarios) != 0:
+                    list_coments = "<p>COMENTARIOS</p>"
+                    for j in comentarios:
+                        list_coments += j.coment + "<br>"
 
-		if request.user.is_authenticated():
-			username = str(request.user)
-			form_user = 'Bienvenido ' + username
-			form_user += '<br><br><a href="http://localhost:1234/logout" > Logout </a>'
+                Response = "<p>INFORMACIÓN ACERCA DEL APARCAMIENTO CON ID: " + recurso + "</br></p>"
+                Response += "<a href=" + i.content_url + ">" + i.nombre + "</a><br>"
+                Response += "Descripción: " + descripcion + "</br>"
+                Response += "Accesibilidad: " + acces + "</br>"
+                Response += "Localización: " + via + " " + localizacion + ", nº " + str(num)
+                Response += " " + localidad + " (" + str(codigo_postal) + ")</br>"
+                Response += "Ubicación: " + barrio + " " + distrito + " Coordenadas: " + str(coordenada_x) + " , " + str(coordenada_y) + "<br><br>"
+                Response += "INFORMACIÓN DE CONTACTO </br>"
+                Response += "Teléfono: " + telefono + "</br>"
+                Response += "Email: " + email + "</br>" + list_coments
+                if num_megustas != 0:
+                    Response += "</br>Numero de me gustas es: " + str(num_megustas) + "</br>"
+                else:
+                    Response += "</br>Se el primero en indicar que te gusta la página</br>"
 
-			formulario = '<form action="" method="POST">'
-			formulario += '<br><br>Puede introducir un comentario si lo desea ' + str(request.user) + '<br><input type="text" name="Comentario"><br>'
-			formulario += '<br><input type="submit" value="Enviar"></form>'
-			Response += formulario #Sólo si está logueado
+        if request.user.is_authenticated():
+            username = str(request.user)
+            form_user = 'Bienvenido ' + username
+            form_user += '<br><br><a href="http://localhost:1234/logout" > Logout </a>'
 
-		else:
-			form_user = "Para loguearse vaya al botón de Inicio"
+            #formulario = '<form action="" method="POST">'
+            #formulario += '<br><br>Puede introducir un comentario si lo desea ' + str(request.user) + '<br><input type="text" name="Comentario">'
+            #formulario += '<input type="submit" value="Comentar"></form>'
+            #Response += formulario
 
-	except ObjectDoesNotExist:
-		Response = "Este id no se corresponde con ningún aparcamiento"
+        else:
+            form_user = "Para loguearse vaya al botón de Inicio"
 
-	c = Context({'lista': Response, 'footer': foot, 'login': form_user})
-	renderizado = template.render(c)
-	return HttpResponse(renderizado)
+        megusta = ''
+        megusta += '<br> Indica que te gusta este aparcamiento</br>'
+        megusta += '<form action="" method="POST">'
+        megusta += '<button type="submit" name="Me Gusta" value="Me Gusta"> +1 </button></form>'
+        Response += megusta
 
+    except ObjectDoesNotExist:
+        Response = "Este id no se corresponde con ningún aparcamiento"
+
+    c = Context({'lista': Response, 'login': form_user})
+    renderizado = template.render(c)
+    return HttpResponse(renderizado)
 
 def about(request):
 
-	foot = pie_pagina()
-	template = get_template("ayuda.html")
+    template = get_template("about.html")
 
-	Response = "DESCRIPCIÓN DE LA APLICACIÓN DE APARCAMIENTOS DE MADRID<br><br>"
-	Response += "<li> Página principal </li>"
-	Response += "<p> Botón Todos: Muestra un listado con todos los aparcamientos registrados en la aplicación </p>"
-	Response += "<p> Botón Ayuda: Muestra un texto de ayuda que describe el funcionamiento de la página </p>"
-	Response += "<p> Botón Accesibles: Si se selecciona una vez mostrará un listado con sólo aquellos aparcamientos que estén disponibles."
-	Response += " Si se selecciona de nuevo, mostrará un listado con todos los aparcamientos registrados en la aplicación."
-	Response += " Para salir del menú Accesibles se seleccionará 'Volver'.</p>"
-	Response += "<p>Listado de Aparcamientos más comentados: Mostrará los 5 aparcamientos más comentados por usuarios.</p>"
-	Response += "<p>Listado de páginas personales de usuario: Mostrará un listado con la interfaz públicas de los usuarios registrados en"
-	Response += " la aplicación. Se podrá acceder a ellas seleccionando el enlace del título de sus páginas de usuario.</p>"
-	Response += "<li> Interfaz pública de usuario </li>"
-	Response += "<p> Se mostrará un listado con los aparcamientos seleccionados por ese usuario. Sólo se verán de 5 en 5, pudiendo "
-	Response += " seleccionar el enlace 'Next page' o 'Previous page' para visualizar los siguientes o anteriores.</p>"
-	Response += "<p> Botón Inicio: Muestra de nuevo la página principal. </p>"
-	Response += "<li> Página de aparcamientos </li>"
-	Response += "<p> Se podrá acceder a través del botón 'Todos' de la Página Principal.</p>"
-	Response += "<p> Muestra un listado con todos los aparcamientos registrados junto con un enlace a 'Más Información'. Este enlace "
-	Response += "mostrará información más detallada acerca de este aparcamiento, incluídos sus comentarios.</p>"
-	Response += "<p> Filtrar por distrito: permite el filtrado por un distrito seleccionado. Este distrito debe ser incluído sin tildes."
-	Response += " Mostrará un listado de aquellos aparcamientos que se correspondan con el distrito introducido.</p>"
-	Response += "<li> Interfaz privada </li>"
-	Response += "<p> Un usuario podrá loguearse únicamente desde la Página Principal. Para ello debe rellenar el formulario superior."
-	Response += " Una vez logueado, accede a su página personal de usuario. Donde podrá encontrar: </p>"
-	Response += "<p> El listado con los aparcamientos seleccionados por ese usuario, con un enlace a la página del aparcamiento y a su"
-	Response += " información. Si se accede a 'Más Información', se mostrará la página de ese aparcamiento junto con un formulario"
-	Response += " para que el usuario pueda poner comentarios si lo desea. </p>"
-	Response += "<p> Formulario para cambiar el título de su página personal.</p>"
-	Response += "<p> Formulario para cambiar el color y tamaño de letra de todas las páginas de la aplicación.</p>"
-	Response += "<p> Listado con todos los aparcamientos registrados para poder seleccionarlos pulsando 'Seleccionar'.</p>"
-	Response += "<li> Pie de página </li>"
-	Response += "<p> Enlace de la aplicación: Muestra la página original de la aplicación de Aparcamientos de Madrid.</p>"
-	Response += "<p> Descripción de los datos: Muestra un XML con la información de todos los aparcamientos registrados en la página.</p>"
-	Response += "<li> XML de usuario </li>"
-	Response += "<p> Finalmente, si se realiza el recurso 'usuario'/XML, se mostrará un XML con la información de los aparcamientos"
-	Response += " seleccionados por el usuario 'usuario'.</p>"
+    Cuerpo = "DESCRIPCIÓN DE LA APLICACIÓN DE APARCAMIENTOS DE MADRID<br><br>"
+    Cuerpo += "------------------------------------ Página principal ---------------------------------------------------"
+    Cuerpo += "<li> Tiene un menú bajo el banner en el que nos permite dirigirnos a Inicio (página principal), a Todos (listado de todos los aparcamientos) o a About (página de ayuda y explicación de la web) </li>"
+    Cuerpo += "<li> Un botón Accesibles, que si se selecciona una vez mostrará un listado con sólo aquellos aparcamientos que estén disponibles en ese momento. Si se selecciona de nuevo, mostrará un listado con todos los aparcamientos registrados en la aplicación. Para volver a la página principal se selecciona 'Volver'.</li>"
+    Cuerpo += "<li> Bajo el botón Accesibles hay un listado de páginas personales de usuario: Muestra un listado con la interfaz pública de los usuarios registrados en la aplicación. Se puede acceder a ellas seleccionando el enlace del título de sus páginas de usuario.</li>"
+    Cuerpo += "<li> Listado de Aparcamientos más comentados: Mostrará los 5 aparcamientos más comentados por usuarios.</li></br></br>"
+    Cuerpo += "------------------------------------ Interfaz pública de usuario ---------------------------------------------------"
+    Cuerpo += "<li> Muestra un listado con los aparcamientos seleccionados por el usuario elegido. Sólo se visualizan de 5 en 5.</li>"
+    Cuerpo += "<li> Tiene un menú bajo el banner en el que nos permite dirigirnos a Inicio (página principal), a Todos (listado de todos los aparcamientos) o a About (página de ayuda y explicación de la web) </li></br></br>"
+    Cuerpo += "------------------------------------ Página con los aparcamientos ---------------------------------------------------"
+    Cuerpo += "<li> Se puede acceder a través del botón 'Todos' de la Página Principal.</li>"
+    Cuerpo += "<li> Muestra un listado con todos los aparcamientos registrados junto con un enlace a 'Más Información' para cada aparcamiento. Este enlace mostrará información más detallada acerca de este aparcamiento y también sus comentarios.</li>"
+    Cuerpo += "<li> Filtrar por distrito: permite el filtrado por un distrito seleccionado. Mostrará un listado de aquellos aparcamientos que se correspondan con el distrito introducido.</li></br></br>"
+    Cuerpo += "------------------------------------ Interfaz privada de usuario ---------------------------------------------------"
+    Cuerpo += "<li> Un usuario podrá loguearse únicamente desde la Página Principal. Para ello debe rellenar el formulario superior. Una vez logueado, accede a su página personal de usuario. Donde puede encontrar: </li>"
+    Cuerpo += "<li> El listado con los aparcamientos seleccionados por ese usuario, con un enlace a la página del aparcamiento y a su información. Si se accede a 'Más Información', se mostrará la página de ese aparcamiento junto con un formulario para que el usuario pueda poner comentarios si lo desea. </li>"
+    Cuerpo += "<li> Formulario para cambiar el título de su página personal.</li>"
+    Cuerpo += "<li> Formulario para cambiar el color y tamaño de letra de todas las páginas de la aplicación.</li>"
+    Cuerpo += "<li> Listado con todos los aparcamientos registrados para poder seleccionarlos pulsando 'Seleccionar'.</li></br></br>"
+    Cuerpo += "------------------------------------ Pie de pagina ---------------------------------------------------"
+    Cuerpo += "<li> Si se selecciona el enlace Datos munimadrid, se redirecciona a la página original de la aplicación de Aparcamientos de Madrid.</li>"
+    Cuerpo += "<li> Si se selecciona el enlace correspodiente al fichero XML muestra el XML con la información de todos los aparcamientos registrados en la página.</li></br></br>"
+    Cuerpo += "------------------------------------ Página XML de un usuario ---------------------------------------------------"
+    Cuerpo += "<li> Si se realiza el recurso 'usuario'/XML, se muestra el XML con la información de los aparcamientos seleccionados por el usuario introducido.</li></br></br>"
 
+    c = Context({'lista': Cuerpo})
+    renderizado = template.render(c)
 
-
-	c = Context({'lista': Response, 'footer': foot})
-	renderizado = template.render(c)
-
-	return HttpResponse(renderizado)
+    return HttpResponse(renderizado)
