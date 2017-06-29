@@ -49,7 +49,7 @@ def loginuser(request):
 		renderizado = template.render(c)
 		return HttpResponse(renderizado)
 
-def lista_comentarios():
+def lista_megustas():
 
     lista_todos = Aparcamiento.objects.all()
     lista_ordenada = lista_todos.order_by("-contador_megusta")[:5]
@@ -136,7 +136,7 @@ def accesibles(value):
 def pagina_principal(request):
 
 	formulario = login_form(request)
-	list_coments = lista_comentarios()
+	list_megustas = lista_megustas()
 	users = paginas_personales()
 
 	value = 1
@@ -170,7 +170,7 @@ def pagina_principal(request):
 				for aparcamiento in aparcamientos:
 					nombre_aparcamiento = aparcamiento.nombre
 					url_aparcamiento = aparcamiento.entidad
-					lista += '<p>' + nombre_aparcamiento + '<br>URL del aparcamiento: ' + '<a href="aparcamientos/' + url_aparcamiento + '">	⇾ Más información</a></br></p>'
+					lista += '<li><p>' + nombre_aparcamiento + '. URL del aparcamiento: ' + '<a href="aparcamientos/' + url_aparcamiento + '">	⇾ Más información</a></br></p>'
 				value = 1
 
 			accesible = accesibles(value)
@@ -184,7 +184,7 @@ def pagina_principal(request):
 			get_data()
 
 
-		c = Context({'login': formulario, 'list':list_coments, 'list_users':users, 'accesible': accesible})
+		c = Context({'login': formulario, 'list':list_megustas, 'list_users':users, 'accesible': accesible})
 
 	renderizado = template.render(c)
 	return HttpResponse(renderizado)
@@ -202,7 +202,7 @@ def usuarios(request, peticion):
 
 	css = '<form action="" method="POST">'
 	css += 'Modifique el tamaño de letra<br><input type="text" name="Letra">'
-	css += '<br>Modifique el color de letra	<input type="color" name="Color"><br>'
+	css += '<br><br>Modifique el color de letra	<input type="color" name="Color"><br>'
 	css += '<br><input type="submit" value="Modificar"></form>'
 
 
@@ -305,8 +305,8 @@ def personalizar(request):
 		letra = user.letra
 		color = user.color
 	else:
-		letra = "18px"
-		color = "#17C86D"
+		letra = "14px"
+		color = "#FCFCFC"
 
 	css = get_template("change.css")
 	c = Context({'letra':letra, 'color':color})
@@ -504,25 +504,30 @@ def aparcamientos_id(request, recurso):
     num_megustas = 0
 
     if request.method == 'POST':
+        key = request.body.decode("utf-8").split('=')[0]
+        print(key)
+
         #tipo = request.POST
         #print(tipo)
         #qd = urllib.unquote(tipo).decode("utf-8")
         #qd = QueryDict(tipo).decode("utf-8")
         #qd.getlist('Me Gusta')
         #print(qd)
-        #if tipo == 'Comentario':
-            #coment = request.POST['Comentario']
-            #aparcamiento = Aparcamiento.objects.get(entidad=recurso)
-            #aparcamiento.contador_coments = aparcamiento.contador_coments + 1
-            #aparcamiento.save()
+        if key == 'Me+Gusta':
+            aparcamiento = Aparcamiento.objects.get(entidad=recurso)
+            aparcamiento.contador_megusta = aparcamiento.contador_megusta + 1
+            aparcamiento.save()
+            num_megustas = aparcamiento.contador_megusta
+        else:
+            coment = request.POST['Comentario']
+            aparcamiento = Aparcamiento.objects.get(entidad=recurso)
+            aparcamiento.contador_coments = aparcamiento.contador_coments + 1
+            aparcamiento.save()
 
-            #p = Comentario (aparcamiento= aparcamiento, coment=coment)
-            #p.save()
-        #else:
-        aparcamiento = Aparcamiento.objects.get(entidad=recurso)
-        aparcamiento.contador_megusta = aparcamiento.contador_megusta + 1
-        aparcamiento.save()
-        num_megustas = aparcamiento.contador_megusta
+            p = Comentario (aparcamiento= aparcamiento, coment=coment)
+            p.save()
+
+
 
     try:
         aparcamiento = Aparcamiento.objects.get(entidad=recurso)
@@ -562,9 +567,9 @@ def aparcamientos_id(request, recurso):
             if i.entidad == recurso:
                 comentarios = Comentario.objects.filter(aparcamiento=i)
                 if len(comentarios) != 0:
-                    list_coments = "<p>COMENTARIOS</p>"
+                    list_coments = "<li><p>COMENTARIOS</p><ol>"
                     for j in comentarios:
-                        list_coments += j.coment + "<br>"
+                        list_coments += "<li>" + j.coment + "<br>"
 
                 Response = "<p>INFORMACIÓN ACERCA DEL APARCAMIENTO CON ID: " + recurso + "</br></p>"
                 Response += "<a href=" + i.content_url + ">" + i.nombre + "</a><br>"
@@ -575,21 +580,21 @@ def aparcamientos_id(request, recurso):
                 Response += "Ubicación: " + barrio + " " + distrito + " Coordenadas: " + str(coordenada_x) + " , " + str(coordenada_y) + "<br><br>"
                 Response += "INFORMACIÓN DE CONTACTO </br>"
                 Response += "Teléfono: " + telefono + "</br>"
-                Response += "Email: " + email + "</br>" + list_coments
+                Response += "Email: " + email + "</br>" + list_coments + "</ol>"
                 if num_megustas != 0:
-                    Response += "</br>Numero de me gustas es: " + str(num_megustas) + "</br>"
+                    Response += "</br><li>Numero de me gustas es: " + str(num_megustas) + "<br>"
                 else:
-                    Response += "</br>Se el primero en indicar que te gusta la página</br>"
+                    Response += "</br><li>Se el primero en indicar que te gusta la página<br>"
 
         if request.user.is_authenticated():
             username = str(request.user)
             form_user = 'Bienvenido ' + username
             form_user += '<br><br><a href="http://localhost:1234/logout" > Logout </a>'
 
-            #formulario = '<form action="" method="POST">'
-            #formulario += '<br><br>Puede introducir un comentario si lo desea ' + str(request.user) + '<br><input type="text" name="Comentario">'
-            #formulario += '<input type="submit" value="Comentar"></form>'
-            #Response += formulario
+            formulario = '<form action="" method="POST">'
+            formulario += '<br>Puede introducir un comentario si lo desea ' + str(request.user) + '<br><input type="text" name="Comentario">'
+            formulario += '<input type="submit" value="Comentar"></form>'
+            Response += formulario
 
         else:
             form_user = "Para loguearse vaya al botón de Inicio"
@@ -616,14 +621,14 @@ def about(request):
     Cuerpo += "<li> Tiene un menú bajo el banner en el que nos permite dirigirnos a Inicio (página principal), a Todos (listado de todos los aparcamientos) o a About (página de ayuda y explicación de la web) </li>"
     Cuerpo += "<li> Un botón Accesibles, que si se selecciona una vez mostrará un listado con sólo aquellos aparcamientos que estén disponibles en ese momento. Si se selecciona de nuevo, mostrará un listado con todos los aparcamientos registrados en la aplicación. Para volver a la página principal se selecciona 'Volver'.</li>"
     Cuerpo += "<li> Bajo el botón Accesibles hay un listado de páginas personales de usuario: Muestra un listado con la interfaz pública de los usuarios registrados en la aplicación. Se puede acceder a ellas seleccionando el enlace del título de sus páginas de usuario.</li>"
-    Cuerpo += "<li> Listado de Aparcamientos más comentados: Mostrará los 5 aparcamientos más comentados por usuarios.</li></br></br>"
-    Cuerpo += "------------------------------------ Interfaz pública de usuario ---------------------------------------------------"
-    Cuerpo += "<li> Muestra un listado con los aparcamientos seleccionados por el usuario elegido. Sólo se visualizan de 5 en 5.</li>"
-    Cuerpo += "<li> Tiene un menú bajo el banner en el que nos permite dirigirnos a Inicio (página principal), a Todos (listado de todos los aparcamientos) o a About (página de ayuda y explicación de la web) </li></br></br>"
+    Cuerpo += "<li> Listado de Aparcamientos con más me gusta: Mostrará los 5 aparcamientos más valorados por usuarios.</li></br></br>"
     Cuerpo += "------------------------------------ Página con los aparcamientos ---------------------------------------------------"
     Cuerpo += "<li> Se puede acceder a través del botón 'Todos' de la Página Principal.</li>"
     Cuerpo += "<li> Muestra un listado con todos los aparcamientos registrados junto con un enlace a 'Más Información' para cada aparcamiento. Este enlace mostrará información más detallada acerca de este aparcamiento y también sus comentarios.</li>"
     Cuerpo += "<li> Filtrar por distrito: permite el filtrado por un distrito seleccionado. Mostrará un listado de aquellos aparcamientos que se correspondan con el distrito introducido.</li></br></br>"
+    Cuerpo += "------------------------------------ Interfaz pública de usuario ---------------------------------------------------"
+    Cuerpo += "<li> Muestra un listado con los aparcamientos seleccionados por el usuario elegido. Sólo se visualizan de 5 en 5.</li>"
+    Cuerpo += "<li> Tiene un menú bajo el banner en el que nos permite dirigirnos a Inicio (página principal), a Todos (listado de todos los aparcamientos) o a About (página de ayuda y explicación de la web) </li></br></br>"
     Cuerpo += "------------------------------------ Interfaz privada de usuario ---------------------------------------------------"
     Cuerpo += "<li> Un usuario podrá loguearse únicamente desde la Página Principal. Para ello debe rellenar el formulario superior. Una vez logueado, accede a su página personal de usuario. Donde puede encontrar: </li>"
     Cuerpo += "<li> El listado con los aparcamientos seleccionados por ese usuario, con un enlace a la página del aparcamiento y a su información. Si se accede a 'Más Información', se mostrará la página de ese aparcamiento junto con un formulario para que el usuario pueda poner comentarios si lo desea. </li>"

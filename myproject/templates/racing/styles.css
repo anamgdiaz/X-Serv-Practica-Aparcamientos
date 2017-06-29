@@ -30,8 +30,8 @@ h1, h2, h3, h4, h5, h6 {
 
 img {
 	margin: 5px 10px 5px 3px;
-	height: 300px;
-  width: 1415px;
+	height: 310px;
+  width: 1240px;
 }
 
 .userbox {
@@ -60,9 +60,10 @@ img {
 	color: auto;
 }
 
-#wrap {
-	width: 800px;
-	margin: 0px auto;
+#wrapper {
+	width: auto;
+	height: auto;
+	margin: auto;
 }
 
 #header {
@@ -139,7 +140,7 @@ img {
 	text-align: center;
 	vertical-align: middle;
 	height: 150px;
-	padding-left: 250px;
+	padding-left: 200px;
 	padding-top: 10px;
 	color: #00FFFF;
 }

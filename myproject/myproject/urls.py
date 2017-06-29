@@ -14,22 +14,22 @@ Including another URLconf
 """
 from django.conf.urls import include, url
 from django.contrib import admin
-from aparcamientos import views
+import aparcamientos.views as aparca_views
 from django.views.static import *
 from myproject import settings
 
 urlpatterns = [
-    url(r'^change.css/', 'aparcamientos.views.personalizar'),
+    url(r'^change.css/', aparca_views.personalizar, name='Personalizar css'),
     url(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_URL}),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^$', 'aparcamientos.views.pagina_principal'),
-    url(r'^login' , 'aparcamientos.views.loginuser'),
-    url(r'^logout', 'aparcamientos.views.mylogout'),
-    url(r'^aparcamientos/$', 'aparcamientos.views.aparcamientos'),
-    url(r'^aparcamientos/(.*)', 'aparcamientos.views.aparcamientos_id'),
-    url(r'^about/', 'aparcamientos.views.about'),
-    url(r'^(.*)/xml/', 'aparcamientos.views.usuarios_xml'),
-    url(r'^(.*)/$', 'aparcamientos.views.usuarios'),
+    url(r'^$', aparca_views.pagina_principal, name='Página principal'),
+    url(r'^login' , aparca_views.loginuser, name='Loguearse'),
+    url(r'^logout', aparca_views.mylogout, name='Logout'),
+    url(r'^aparcamientos/$', aparca_views.aparcamientos, name='Aparcamientos'),
+    url(r'^aparcamientos/(.*)', aparca_views.aparcamientos_id, name='Aparcamiento concreto'),
+    url(r'^about/', aparca_views.about, name='Ayuda'),
+    url(r'^(.*)/xml/', aparca_views.usuarios_xml, name='Pagina XML de un usuario'),
+    url(r'^(.*)/$', aparca_views.usuarios, name='Pagina personal de un usuario'),
 ]
 
 """
